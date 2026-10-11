@@ -323,7 +323,7 @@ var ActionModal = class extends import_obsidian2.Modal {
     this.contentEl.addClass("wf-modal");
     new import_obsidian2.Setting(this.contentEl).setName("Action").addText((t) => {
       t.setValue(this.title).setPlaceholder("Implement request endpoint").onChange((v) => this.title = v);
-      setTimeout(() => t.inputEl.focus(), 50);
+      window.setTimeout(() => t.inputEl.focus(), 50);
     });
     new import_obsidian2.Setting(this.contentEl).setName("Definition of done").addTextArea((t) => t.setValue(this.description).setPlaceholder("Optional context").onChange((v) => this.description = v));
     new import_obsidian2.Setting(this.contentEl).setName("Project").addDropdown((d) => {
@@ -878,6 +878,20 @@ var SettingsTab = class extends import_obsidian2.PluginSettingTab {
     super(app, plugin);
     this.plugin = plugin;
   }
+  getSettingDefinitions() {
+    return [{ name: "Planner folder", desc: "All system data stays inside this vault.", control: { type: "text", key: "plannerFolder", defaultValue: DEFAULT_SETTINGS.plannerFolder } }, { name: "Default week start", control: { type: "dropdown", key: "defaultWeekStart", options: Object.fromEntries(WEEKDAYS.map((day, index) => [String(index), day])) } }];
+  }
+  getControlValue(key) {
+    return key === "defaultWeekStart" ? String(this.plugin.settings.defaultWeekStart) : this.plugin.settings.plannerFolder;
+  }
+  async setControlValue(key, value) {
+    if (key === "plannerFolder") this.plugin.settings.plannerFolder = String(value).trim() || DEFAULT_SETTINGS.plannerFolder;
+    if (key === "defaultWeekStart") {
+      const start = Number(value);
+      if (Number.isInteger(start) && start >= 0 && start < WEEKDAYS.length) this.plugin.settings.defaultWeekStart = start;
+    }
+    await this.plugin.saveSettings();
+  }
   display() {
     this.containerEl.empty();
     new import_obsidian2.Setting(this.containerEl).setName("Planner folder").setDesc("All system data stays inside this vault.").addText((t) => t.setValue(this.plugin.settings.plannerFolder).onChange(async (v) => {
@@ -899,14 +913,11 @@ var WeekPilotPlugin = class extends import_obsidian2.Plugin {
     this.store = new WeekPilotStore(this.app, this.settings);
     this.registerView(VIEW, (l) => new WeekPilotView(l, this));
     this.addRibbonIcon("orbit", "Open WeekPilot OS", () => void this.activate());
-    this.addCommand({ id: "open-weekpilot", name: "Open operating system", callback: () => void this.activate() });
+    this.addCommand({ id: "open-operating-system", name: "Open operating system", callback: () => void this.activate() });
     this.addSettingTab(new SettingsTab(this.app, this));
     this.registerEvent(this.app.vault.on("modify", (f) => void this.changed(f.path)));
     this.registerEvent(this.app.vault.on("create", (f) => void this.changed(f.path)));
     this.registerEvent(this.app.vault.on("delete", (f) => void this.changed(f.path)));
-  }
-  onunload() {
-    this.app.workspace.detachLeavesOfType(VIEW);
   }
   async changed(path) {
     if (!this.store.isPlannerPath(path) || this.store.isInternalWrite(path)) return;

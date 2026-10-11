@@ -1,7 +1,7 @@
 {
   "id": "weekpilot",
   "name": "WeekPilot",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "minAppVersion": "1.5.0",
   "description": "A vault-native weekly operating system for outcomes, projects, monthly maps, and reviews.",
   "author": "Abdullah Fathallah",
